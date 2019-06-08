@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+import curses
+import random
+from curses import wrapper
+
+
+def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    # Dictates if user wants a set number, or infinite questions
+    question_group = parser.add_mutually_exclusive_group()
+
+
+    # positional argument: infile
+    # description: name of file to read questions from in lieu of stdin
+    parser.add_argument(
+        "infile",
+        nargs="?",
+        type=argparse.FileType('r'),
+        help="name of file to read questions from, defaults to stdin",
+        default=sys.stdin
+    )
+    # optional argument: delimiter
+    # description: describes delimiter in input lines which divides question
+    #              and answer
+    parser.add_argument(
+        "-d", "--delimiter",
+        help="delimiter in input lines which divide the question and answer",
+        default=","
+    )
+    # optional argument: questions
+    # description: number of questions to ask
+    question_group.add_argument(
+        "-n", "--questions",
+        type=int,
+        help="number of questions to answer",
+        default=10
+    )
+    # Optional argument: endless
+    # description: tells program to keep asking questions until terminated
+    question_group.add_argument(
+        "-e", "--endless",
+        help="keep asking questions until program is terminated",
+        action="store_true"
+    )
+    args = parser.parse_args()
+
+    # wrapper() calls cbreak() and noecho() so we don't have to
+    wrapper(lambda stdscr: None)
+    """
+    question_answer_mapping = dict()
+    no_choices = 3
+    no_questions = 10
+    no_questions = max(len(question_answer_mapping.keys()), no_questions)
+
+    chosen_questions = random.sample(
+        question_answer_mapping.keys(),
+    )
+    correct_answers = [question_answer_mapping[q] for q in chosen_questions]
+    for i in range no_questions:
+        stdscr.addstr(0, 0, "Question " + i + ": " + chosen_questions[i])
+        correct_answer = correct_answers[i]
+        choice_set = set(question_answer_mapping.values()) - set(correct_answer)
+        choices = random.sample(choice_set, ) + [correct_answer]
+        for j in range(no_choices):
+            
+        stdscr.refresh()
+        while True:
+            c = stdscr.getch()
+            if (c == ord("q")):
+                break
+    """
+        
+
+if __name__ == "__main__":
+    main()
