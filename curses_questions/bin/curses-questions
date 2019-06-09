@@ -102,20 +102,42 @@ def main():
 
     
 def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
-    for question_number, (question, answer) in enumerate(question_gen, 1):
+    # Sets background colour to black, curses.wrapper resets this on termination
+    curses.init_color(0, 0, 0, 0)
+    # We must call this to be able to use -1 in the next command
+    curses.use_default_colors()
+    # -1 sets the text bg colour to the current bg colour of the terminal
+    curses.init_pair(1, curses.COLOR_CYAN, -1)
+    curses.init_pair(2, curses.COLOR_BLUE, -1)
+    for question_number, (question, correct_answer) in enumerate(question_gen, 1):
+        # Print out the question
         stdscr.clear()
-        stdscr.addstr(0, 0, "Question " + str(question_number) + ": " + preceding_str + question)
+        stdscr.addstr(0, 0, "Question " + str(question_number), curses.color_pair(1))
+        stdscr.addstr(": " + preceding_str)
+        stdscr.addstr(question, curses.color_pair(2))
+
+        # Print out the answers
         answers = answer_producer.get_random_answers(question)
         for answer_number, answer in enumerate(answers, 1):
-            stdscr.addstr(answer_number, 0, str(answer_number) + ": " + answer)
+            if (answer_number % 2):
+                stdscr.addstr(
+                    answer_number * 2, 4,
+                    str(answer_number) + ": " + answer,
+                    curses.A_BOLD
+                )
+            else:
+                stdscr.addstr(answer_number * 2, 4, str(answer_number) + ": " + answer)
         # Curses does nothing until we refresh
         stdscr.refresh()
         while True:
             c = stdscr.getch()
             if (c == ord("q")):
-                return
+                return  # User has quit
             elif (chr(c).isdigit() and 1 <= int(chr(c)) <= answer_number):
-                break
+                # Check answer
+                chosen_answer = answers[int(chr(c)) - 1]
+                if (chosen_answer == correct_answer):
+                    break
             
 
 def question_generator(question_pool, no_questions, with_replacement=False):
@@ -137,12 +159,15 @@ def question_generator(question_pool, no_questions, with_replacement=False):
             yield question        
 
             
-def inf_question_generator(question_pool):
+def inf_question_generator(question_pool, error_question=("?", "?")):
     """
+    Generator which will yield random questions from a pool continuously.
+    If the pool is empty error_question is yielded instead.
     """
     question_pool = dict(question_pool)
+    items = list(question_pool.items())
     while True:
-        yield random.choice(question_pool.items())
+        yield random.choice(items) if items else error_question
 
             
 
