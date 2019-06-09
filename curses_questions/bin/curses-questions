@@ -24,7 +24,7 @@ class FalseAnswerProducer():
         """
         # Ensure random.sample works
         no_choices = min(no_choices, len(self.question_pool))
-        exclusion_set = set(self.question_pool[chosen_question])
+        exclusion_set = set([self.question_pool[chosen_question],])
         choice_set = set(self.question_pool.values()) - exclusion_set
         # random choice without replacement
         choices = random.sample(choice_set, no_choices - 1)
@@ -118,26 +118,39 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
 
         # Print out the answers
         answers = answer_producer.get_random_answers(question)
-        for answer_number, answer in enumerate(answers, 1):
-            if (answer_number % 2):
-                stdscr.addstr(
-                    answer_number * 2, 4,
-                    str(answer_number) + ": " + answer,
-                    curses.A_BOLD
-                )
-            else:
-                stdscr.addstr(answer_number * 2, 4, str(answer_number) + ": " + answer)
+        render_answers(stdscr, answers)
+
         # Curses does nothing until we refresh
         stdscr.refresh()
+        answer_chosen = False
         while True:
             c = stdscr.getch()
             if (c == ord("q")):
                 return  # User has quit
-            elif (chr(c).isdigit() and 1 <= int(chr(c)) <= answer_number):
+            elif (answer_chosen):
+                answer_chosen = False
+                break
+            elif (chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers)):
+                answer_chosen = True
                 # Check answer
                 chosen_answer = answers[int(chr(c)) - 1]
                 if (chosen_answer == correct_answer):
-                    break
+                    render_answers(stdscr, answers, green_ans=int(chr(c)))
+                else:
+                    n_correct = answers.index(correct_answer) + 1
+                    render_answers(stdscr, answers, green_ans=n_correct, red_ans=int(chr(c)))
+
+
+def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
+    curses.init_pair(3, curses.COLOR_GREEN, -1)
+    curses.init_pair(4, curses.COLOR_RED, -1)
+    for number, answer in enumerate(answers, 1):
+        flag = curses.A_BOLD if (number % 2) else curses.A_DIM
+        # Green or red text overrides bold and dim effects
+        if (number == green_ans or number == red_ans):
+            flag = curses.color_pair(3 if number == green_ans else 4)
+        stdscr.addstr(number * 2, indent, str(number) + ": " + answer, flag)
+        
             
 
 def question_generator(question_pool, no_questions, with_replacement=False):
