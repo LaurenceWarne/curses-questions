@@ -5,13 +5,16 @@ import sys
 import curses
 import random
 
-
 """
-Obtains false answers via randomly selection from a question pool.
+Uses curses to display questions when run as a script.
 """
 
 
 class FalseAnswerProducer:
+    """
+    Obtains false answers via randomly selection from a question pool.
+    """
+
     def __init__(self, question_pool, no_choices=3):
         self.question_pool = question_pool
         self.no_choices = no_choices
