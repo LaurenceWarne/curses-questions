@@ -9,13 +9,14 @@ import random
 """
 Obtains false answers via randomly selection from a question pool.
 """
-class FalseAnswerProducer():
 
+
+class FalseAnswerProducer:
     def __init__(self, question_pool, no_choices=3):
         self.question_pool = question_pool
         self.no_choices = no_choices
         # Just to be safe
-        if (not self.question_pool):
+        if not self.question_pool:
             self.question_pool = {"Your question Here": "Your answer here"}
 
     def get_random_answers(self, chosen_question):
@@ -25,7 +26,7 @@ class FalseAnswerProducer():
         """
         # Ensure random.sample works
         self.no_choices = min(self.no_choices, len(self.question_pool))
-        exclusion_set = set([self.question_pool[chosen_question],])
+        exclusion_set = set([self.question_pool[chosen_question]])
         choice_set = set(self.question_pool.values()) - exclusion_set
         # random choice without replacement
         choices = random.sample(choice_set, self.no_choices - 1)
@@ -33,7 +34,7 @@ class FalseAnswerProducer():
         # Insert correct answer into random place in list
         choices.insert(random.randint(0, self.no_choices - 1), correct_answer)
         return choices
-    
+
 
 def main():
     # Here we define our command line arguments
@@ -46,47 +47,48 @@ def main():
     parser.add_argument(
         "infile",
         nargs="?",
-        type=argparse.FileType('r'),
+        type=argparse.FileType("r"),
         help="name of file to read questions from, defaults to stdin",
-        default=sys.stdin
+        default=sys.stdin,
     )
     # optional argument: delimiter
     # description: describes delimiter in input lines which divides question
     #              and answer
     parser.add_argument(
-        "-d", "--delimiter",
+        "-d",
+        "--delimiter",
         help="delimiter in input lines which divide the question and answer",
-        default=","
+        default=",",
     )
     # optional argument: precede
     # description: text to precede all questions
     parser.add_argument(
-        "-p", "--precede",
+        "-p",
+        "--precede",
         help="precede all question strings with this string",
-        default=""
+        default="",
     )
     # optional argument: choices
     # description: number of answer choices for a question
     parser.add_argument(
-        "-c", "--choices",
+        "-c",
+        "--choices",
         type=int,
         help="number of answers to choose from per question, default is 3",
-        default=3
+        default=3,
     )
     # optional argument: questions
     # description: number of questions to ask
     question_group.add_argument(
-        "-n", "--questions",
-        type=int,
-        help="number of questions to answer",
-        default=10
+        "-n", "--questions", type=int, help="number of questions to answer", default=10
     )
     # Optional argument: endless
     # description: tells program to keep asking questions until terminated
     question_group.add_argument(
-        "-e", "--endless",
+        "-e",
+        "--endless",
         help="keep asking questions until program is terminated",
-        action="store_true"
+        action="store_true",
     )
     args = parser.parse_args()
 
@@ -95,7 +97,7 @@ def main():
     # Split file lines by delimiter
     question_pool = dict(map(lambda string: string.split(delim), file_lines))
     # Create the correct question generator object
-    if (args.endless):
+    if args.endless:
         question_gen = inf_question_generator(question_pool)
     else:
         question_gen = question_generator(question_pool, args.questions)
@@ -109,7 +111,7 @@ def main():
         )
     )
 
-    
+
 def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
     # Sets background colour to black, curses.wrapper resets this on termination
     curses.init_color(0, 0, 0, 0)
@@ -139,28 +141,29 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
         # Add a cool border
         stdscr.border(0)
 
-
         # Curses does nothing until we refresh
         stdscr.refresh()
         # Here we wait for user input and react accordingly
         answer_chosen = False
         while True:
             c = stdscr.getch()
-            if (c == ord("q")):    # User has quit
-                return  
-            elif (answer_chosen):  # User has gone to next question
+            if c == ord("q"):  # User has quit
+                return
+            elif answer_chosen:  # User has gone to next question
                 answer_chosen = False
                 break
-            elif (chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers)):
+            elif chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers):
                 answer_chosen = True
                 # Check answer
                 chosen_answer = answers[int(chr(c)) - 1]
-                if (chosen_answer == correct_answer):
+                if chosen_answer == correct_answer:
                     render_answers(stdscr, answers, green_ans=int(chr(c)))
                     no_correct += 1
                 else:
                     n_correct = answers.index(correct_answer) + 1
-                    render_answers(stdscr, answers, green_ans=n_correct, red_ans=int(chr(c)))
+                    render_answers(
+                        stdscr, answers, green_ans=n_correct, red_ans=int(chr(c))
+                    )
                 stdscr.border(0)
 
 
@@ -170,11 +173,10 @@ def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
     for number, answer in enumerate(answers, 1):
         flag = curses.A_BOLD if (number % 2) else curses.A_DIM
         # Green or red text overrides bold and dim effects
-        if (number == green_ans or number == red_ans):
+        if number == green_ans or number == red_ans:
             flag = curses.color_pair(3 if number == green_ans else 4)
         stdscr.addstr(number * 2 + 1, indent, str(number) + ": " + answer, flag)
-        
-            
+
 
 def question_generator(question_pool, no_questions, with_replacement=False):
     """
@@ -185,16 +187,16 @@ def question_generator(question_pool, no_questions, with_replacement=False):
     items.
     """
     question_pool = dict(question_pool)
-    if (with_replacement):
+    if with_replacement:
         for i in range(no_questions):
             yield random.choice(question_pool.items())
     else:
         no_questions = min(len(question_pool), no_questions)
         chosen_questions = random.sample(question_pool.items(), no_questions)
         for question in chosen_questions:
-            yield question        
+            yield question
 
-            
+
 def inf_question_generator(question_pool, error_question=("?", "?")):
     """
     Generator which will yield random questions from a pool continuously.
@@ -204,7 +206,7 @@ def inf_question_generator(question_pool, error_question=("?", "?")):
     items = list(question_pool.items())
     while True:
         yield random.choice(items) if items else error_question
-            
+
 
 if __name__ == "__main__":
     main()
