@@ -7,41 +7,42 @@ import random
 
 
 """
-Obtains false answers by randomly selecting from a question pool.
+Obtains false answers via randomly selection from a question pool.
 """
 class FalseAnswerProducer():
 
-    def __init__(self, question_pool):
+    def __init__(self, question_pool, no_choices=3):
         self.question_pool = question_pool
+        self.no_choices = no_choices
         # Just to be safe
         if (not self.question_pool):
             self.question_pool = {"Your question Here": "Your answer here"}
 
-    def get_random_answers(self, chosen_question, no_choices=3):
+    def get_random_answers(self, chosen_question):
         """
         Get iterable of answers which consists of the answer of the chosen
-        question and (no_choices - 1) incorrect answers 
+        question and (no_choices - 1) randomly chosen incorrect answers.
         """
         # Ensure random.sample works
-        no_choices = min(no_choices, len(self.question_pool))
+        self.no_choices = min(self.no_choices, len(self.question_pool))
         exclusion_set = set([self.question_pool[chosen_question],])
         choice_set = set(self.question_pool.values()) - exclusion_set
         # random choice without replacement
-        choices = random.sample(choice_set, no_choices - 1)
+        choices = random.sample(choice_set, self.no_choices - 1)
         correct_answer = self.question_pool[chosen_question]
         # Insert correct answer into random place in list
-        choices.insert(random.randint(0, no_choices - 1), correct_answer)
+        choices.insert(random.randint(0, self.no_choices - 1), correct_answer)
         return choices
     
 
 def main():
-    # Parse command line arguments
+    # Here we define our command line arguments
     parser = argparse.ArgumentParser()
     # Dictates if user wants a set number, or infinite questions
     question_group = parser.add_mutually_exclusive_group()
 
     # positional argument: infile
-    # description: name of file to read questions from in lieu of stdin
+    # description: name of file to read questions from
     parser.add_argument(
         "infile",
         nargs="?",
@@ -63,6 +64,14 @@ def main():
         "-p", "--precede",
         help="precede all question strings with this string",
         default=""
+    )
+    # optional argument: choices
+    # description: number of answer choices for a question
+    parser.add_argument(
+        "-c", "--choices",
+        type=int,
+        help="number of answers to choose from per question, default is 3",
+        default=3
     )
     # optional argument: questions
     # description: number of questions to ask
@@ -91,7 +100,7 @@ def main():
     else:
         question_gen = question_generator(question_pool, args.questions)
     # Create a false answer generator object
-    false_answer_producer = FalseAnswerProducer(question_pool)
+    false_answer_producer = FalseAnswerProducer(question_pool, args.choices)
 
     # wrapper() calls cbreak() and noecho() so we don't have to
     curses.wrapper(
@@ -106,28 +115,40 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
     curses.init_color(0, 0, 0, 0)
     # We must call this to be able to use -1 in the next command
     curses.use_default_colors()
+    # Hide the cursor
+    curses.curs_set(0)
     # -1 sets the text bg colour to the current bg colour of the terminal
     curses.init_pair(1, curses.COLOR_CYAN, -1)
     curses.init_pair(2, curses.COLOR_BLUE, -1)
+    no_correct = 0
     for question_number, (question, correct_answer) in enumerate(question_gen, 1):
         # Print out the question
         stdscr.clear()
-        stdscr.addstr(0, 0, "Question " + str(question_number), curses.color_pair(1))
+        stdscr.addstr(1, 1, "Question " + str(question_number), curses.color_pair(1))
         stdscr.addstr(": " + preceding_str)
         stdscr.addstr(question, curses.color_pair(2))
+
+        # Print out running total of questions answered correctly
+        max_y, max_x = stdscr.getmaxyx()
+        running_total_str = str(no_correct) + "/" + str(question_number - 1)
+        stdscr.addstr(1, max_x - len(running_total_str) - 2, running_total_str)
 
         # Print out the answers
         answers = answer_producer.get_random_answers(question)
         render_answers(stdscr, answers)
+        # Add a cool border
+        stdscr.border(0)
+
 
         # Curses does nothing until we refresh
         stdscr.refresh()
+        # Here we wait for user input and react accordingly
         answer_chosen = False
         while True:
             c = stdscr.getch()
-            if (c == ord("q")):
-                return  # User has quit
-            elif (answer_chosen):
+            if (c == ord("q")):    # User has quit
+                return  
+            elif (answer_chosen):  # User has gone to next question
                 answer_chosen = False
                 break
             elif (chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers)):
@@ -136,9 +157,11 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
                 chosen_answer = answers[int(chr(c)) - 1]
                 if (chosen_answer == correct_answer):
                     render_answers(stdscr, answers, green_ans=int(chr(c)))
+                    no_correct += 1
                 else:
                     n_correct = answers.index(correct_answer) + 1
                     render_answers(stdscr, answers, green_ans=n_correct, red_ans=int(chr(c)))
+                stdscr.border(0)
 
 
 def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
@@ -149,7 +172,7 @@ def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
         # Green or red text overrides bold and dim effects
         if (number == green_ans or number == red_ans):
             flag = curses.color_pair(3 if number == green_ans else 4)
-        stdscr.addstr(number * 2, indent, str(number) + ": " + answer, flag)
+        stdscr.addstr(number * 2 + 1, indent, str(number) + ": " + answer, flag)
         
             
 
@@ -181,7 +204,6 @@ def inf_question_generator(question_pool, error_question=("?", "?")):
     items = list(question_pool.items())
     while True:
         yield random.choice(items) if items else error_question
-
             
 
 if __name__ == "__main__":
