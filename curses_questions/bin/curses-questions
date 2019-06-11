@@ -4,6 +4,7 @@ import argparse
 import sys
 import curses
 import random
+import textwrap
 
 """
 Uses curses to display questions when run as a script.
@@ -156,6 +157,7 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
                 answer_chosen = False
                 break
             elif chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers):
+                stdscr.refresh()
                 answer_chosen = True
                 # Check answer
                 chosen_answer = answers[int(chr(c)) - 1]
@@ -173,12 +175,24 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
 def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
     curses.init_pair(3, curses.COLOR_GREEN, -1)
     curses.init_pair(4, curses.COLOR_RED, -1)
+    current_line = 2
     for number, answer in enumerate(answers, 1):
+        current_line += 1  # Ensure we leave a blank line between answers
+        # Prepend number to answer
+        answer = str(number) + ": " + answer
+        text_wrap = textwrap.wrap(
+            answer,
+            width=stdscr.getmaxyx()[1] - 2,
+            initial_indent=" " * indent,
+            subsequent_indent=" " * (indent + 3),
+        )
         flag = curses.A_BOLD if (number % 2) else curses.A_DIM
         # Green or red text overrides bold and dim effects
         if number == green_ans or number == red_ans:
             flag = curses.color_pair(3 if number == green_ans else 4)
-        stdscr.addstr(number * 2 + 1, indent, str(number) + ": " + answer, flag)
+        for line in text_wrap:
+            stdscr.addstr(current_line, 0, line, flag)
+            current_line += 1
 
 
 def question_generator(question_pool, no_questions, with_replacement=False):
