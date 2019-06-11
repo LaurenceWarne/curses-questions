@@ -84,7 +84,11 @@ def main():
     # optional argument: questions
     # description: number of questions to ask
     question_group.add_argument(
-        "-n", "--questions", type=int, help="number of questions to answer", default=10
+        "-n",
+        "--questions",
+        type=int,
+        help="number of questions to answer",
+        default=10
     )
     # Optional argument: endless
     # description: tells program to keep asking questions until terminated
@@ -117,7 +121,7 @@ def main():
 
 
 def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
-    # Sets background colour to black, curses.wrapper resets this on termination
+    # Sets bg colour to black, curses.wrapper resets this on termination
     curses.init_color(0, 0, 0, 0)
     # We must call this to be able to use -1 in the next command
     curses.use_default_colors()
@@ -127,16 +131,14 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
     curses.init_pair(1, curses.COLOR_CYAN, -1)
     curses.init_pair(2, curses.COLOR_BLUE, -1)
     no_correct = 0
-    for question_number, (question, correct_answer) in enumerate(question_gen, 1):
+    for question_no, (question, correct_answer) in enumerate(question_gen, 1):
         # Print out the question
         stdscr.clear()
-        stdscr.addstr(1, 1, "Question " + str(question_number), curses.color_pair(1))
-        stdscr.addstr(": " + preceding_str)
-        stdscr.addstr(question, curses.color_pair(2))
+        render_question(stdscr, question, question_no, preceding_str, 1, 2)
 
         # Print out running total of questions answered correctly
         max_y, max_x = stdscr.getmaxyx()
-        running_total_str = str(no_correct) + "/" + str(question_number - 1)
+        running_total_str = str(no_correct) + "/" + str(question_no - 1)
         stdscr.addstr(1, max_x - len(running_total_str) - 2, running_total_str)
 
         # Print out the answers
@@ -167,12 +169,35 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
                 else:
                     n_correct = answers.index(correct_answer) + 1
                     render_answers(
-                        stdscr, answers, green_ans=n_correct, red_ans=int(chr(c))
+                        stdscr, answers, green_ans=n_correct,
+                        red_ans=int(chr(c))
                     )
                 stdscr.border(0)
 
 
+def render_question(
+    stdscr, question, question_no, preceding_str, intro_colour, question_colour
+):
+    """
+    Draw the specified question at the top of the screen, with 
+    'Question <question_no>' having colour intro_colour, and
+    the question itself having colour question_colour
+    """
+    stdscr.addstr(
+        1, 1, "Question " + str(question_no),
+        curses.color_pair(intro_colour)
+    )
+    stdscr.addstr(": " + preceding_str)
+    stdscr.addstr(question, curses.color_pair(question_colour))
+
+
 def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
+    """
+    Draw the contents of the passed iterable 'answers' on the screen. The 
+    (green_ans)th string in answers will be painted green (-1 for don't
+    paint any) and similarly (red_ans)th string in answers will be painted
+    red.
+    """
     curses.init_pair(3, curses.COLOR_GREEN, -1)
     curses.init_pair(4, curses.COLOR_RED, -1)
     current_line = 2
@@ -200,8 +225,8 @@ def question_generator(question_pool, no_questions, with_replacement=False):
     Generator which yields <no_questions> questions from the specified 
     question_pool (which should be a valid argument to dict(), ie consist of 
     (question, answer) tuples). If with_replacement is True and
-    no_questions > len(questions_pool), the generator will yield len(question_pool)
-    items.
+    no_questions > len(questions_pool), the generator will yield 
+    len(question_pool) items.
     """
     question_pool = dict(question_pool)
     if with_replacement:
