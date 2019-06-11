@@ -41,8 +41,10 @@ class FalseAnswerProducer:
 
 
 def main():
+    description = """Answer questions from a text file using the number
+                     keys."""
     # Here we define our command line arguments
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=description)
     # Dictates if user wants a set number, or infinite questions
     question_group = parser.add_mutually_exclusive_group()
 
