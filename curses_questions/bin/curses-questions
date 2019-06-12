@@ -28,15 +28,15 @@ class FalseAnswerProducer:
         Get iterable of answers which consists of the answer of the chosen
         question and (no_choices - 1) randomly chosen incorrect answers.
         """
-        # Ensure random.sample works
-        self.no_choices = min(self.no_choices, len(self.question_pool))
+        # Ensure random.sample works, note deliberate method local variable
+        no_choices = min(self.no_choices, len(self.question_pool))
         exclusion_set = set([self.question_pool[chosen_question]])
         choice_set = set(self.question_pool.values()) - exclusion_set
         # random choice without replacement
-        choices = random.sample(choice_set, self.no_choices - 1)
+        choices = random.sample(choice_set, no_choices - 1)
         correct_answer = self.question_pool[chosen_question]
         # Insert correct answer into random place in list
-        choices.insert(random.randint(0, self.no_choices - 1), correct_answer)
+        choices.insert(random.randint(0, no_choices - 1), correct_answer)
         return choices
 
 
@@ -186,14 +186,14 @@ def render_question(
     the question itself having colour question_colour
     """
     stdscr.addstr(
-        1, 1, "Question " + str(question_no),
+        1, 2, "Question " + str(question_no),
         curses.color_pair(intro_colour)
     )
     stdscr.addstr(": " + preceding_str)
     stdscr.addstr(question, curses.color_pair(question_colour))
 
 
-def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=4):
+def render_answers(stdscr, answers, green_ans=-1, red_ans=-1, indent=6):
     """
     Draw the contents of the passed iterable 'answers' on the screen. The 
     (green_ans)th string in answers will be painted green (-1 for don't

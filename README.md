@@ -4,7 +4,7 @@ A simple script which uses curses to create a nice TUI for asking questions
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/qnNBptpVcc7qvfSebMWhV4bLY.svg)](https://asciinema.org/a/qnNBptpVcc7qvfSebMWhV4bLY)
+[![asciicast](https://asciinema.org/a/VM1Gx7rwbmdSP1vFbd5HecPtx.svg)](https://asciinema.org/a/VM1Gx7rwbmdSP1vFbd5HecPtx)
 
 ## Usage
 
