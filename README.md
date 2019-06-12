@@ -1,6 +1,6 @@
 # Curses Questions
 
-A simple script which uses curses to create a nice TUI for asking questions
+A simple script which uses curses to create a nice TUI for asking questions.
 
 ## Demo
 
@@ -35,6 +35,8 @@ optional arguments:
 ```
 
 ## Installation
+
+Requires python 3.
 
 ```
 # Installs locally
