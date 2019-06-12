@@ -3,12 +3,14 @@ import textwrap
 
 
 class QuestionWidget:
-
-    def __init__(self, question, question_no, preceding_str):
+    def __init__(
+        self, question, question_no, preceding_str, intro_colour,
+            question_colour
+    ):
         self.question = question
         self.question_no = question_no
-        self.intro_colour = curses.color_pair()
-        self.question_colour = curses.color_pair()
+        self.intro_colour = intro_colour
+        self.question_colour = question_colour
 
     def draw(self, stdscr):
         """
@@ -17,27 +19,33 @@ class QuestionWidget:
         the question itself having colour question_colour
         """
         stdscr.addstr(
-            1, 2, "Question " + str(self.question_no),
-            curses.color_pair(self.intro_colour)
+            1,
+            2,
+            "Question " + str(self.question_no),
+            curses.color_pair(self.intro_colour),
         )
         stdscr.addstr(": " + self.preceding_str)
-        stdscr.addstr(
-            self.question, curses.color_pair(self.question_colour)
-        )
+        stdscr.addstr(self.question, curses.color_pair(self.question_colour))
 
 
 class AnswerWidget:
-
-    CORRECT_COLOUR_DEFAULT = curses.init_pair(3, curses.COLOR_GREEN, -1)
-    WRONG_COLOUR_DEFAULT = curses.init_pair(4, curses.COLOR_RED, -1)
-
-    def __init__(self, answers, indent=6):
+    def __init__(self, answers, correct_colour, false_colour, indent=6):
         self.answers = answers
+        self.correct_colour = correct_colour
+        self.false_colour = false_colour
         self.indent = indent
         self.green_answers = []
         self.red_answers = []
-        self.correct_colour = self.CORRECT_COLOUR_DEFAULT
-        self.correct_colour = self.WRONG_COLOUR_DEFAULT
+
+    def add_green_answer(self, answer_index):
+        self.green_answers.append(answer_index)
+
+    def add_red_answer(self, answer_index):
+        self.red_answers.append(answer_index)
+
+    def clear_coloured_answers(self):
+        self.green_answers.clear()
+        self.red_answers.clear()
 
     def draw(self, stdscr):
         """
@@ -82,6 +90,6 @@ class RunningTotalWidget:
         {questions_answered_correctly}/{total_questions_asked}
         """.format(
             questions_answered_correctly=self.no_correct,
-            total_questions_asked=self.no_questions
+            total_questions_asked=self.no_questions,
         )
         stdscr.addstr(1, max_x - len(running_total_str) - 2, running_total_str)
