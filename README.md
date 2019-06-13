@@ -13,7 +13,10 @@ usage: curses-questions [-h] [-d DELIMITER] [-p PRECEDE] [-c CHOICES]
                         [-n QUESTIONS | -e]
                         [infile]
 
-Answer questions from a text file using the number keys.
+Answer questions from a text file using the number keys. Questions and their
+answers should be on the same line and split by a common delimeter. The answer
+choices displayed by the program for a given question are sampled randomly
+from other questions in the input file (in addition to the correct answer).
 
 positional arguments:
   infile                name of file to read questions from, defaults to stdin

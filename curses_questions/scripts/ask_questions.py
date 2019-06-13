@@ -4,7 +4,6 @@ import argparse
 import curses
 import os
 import random
-import textwrap
 import sys
 
 from curses_questions.widgets import (
@@ -35,6 +34,12 @@ class FalseAnswerProducer:
         """
         # Ensure random.sample works, note deliberate method local variable
         no_choices = min(self.no_choices, len(self.question_pool))
+        # Check chosen_question is actually in the answer pool:
+        if chosen_question not in self.question_pool:
+            raise ValueError(
+                "chosen_question: '{question}' is not in the question_pool"
+                .format(question=chosen_question)
+            )
         exclusion_set = set([self.question_pool[chosen_question]])
         choice_set = set(self.question_pool.values()) - exclusion_set
         # random choice without replacement
@@ -45,9 +50,122 @@ class FalseAnswerProducer:
         return choices
 
 
+def check_positive(value):
+    try:
+        int_value = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            "Invalid int value: '{value}'".format(value=value)
+        )
+    if int_value <= 0:
+        raise argparse.ArgumentTypeError(
+            "Expected positive integer but got: '{value}'".format(value=value)
+        )
+    return int_value
+
+
+def question_generator(question_pool, no_questions, with_replacement=False):
+    """
+    Generator which yields <no_questions> questions from the specified
+    question_pool (which should be a valid argument to dict(), ie consist of
+    (question, answer) tuples). If with_replacement is True and
+    no_questions > len(questions_pool), the generator will yield
+    len(question_pool) items.
+    """
+    question_pool = dict(question_pool)
+    if with_replacement:
+        for i in range(no_questions):
+            yield random.choice(question_pool.items())
+    else:
+        no_questions = min(len(question_pool), no_questions)
+        chosen_questions = random.sample(question_pool.items(), no_questions)
+        for question in chosen_questions:
+            yield question
+
+
+def inf_question_generator(question_pool, error_question=("???", "???")):
+    """
+    Generator which will yield random questions from a pool continuously.
+    If the pool is empty error_question is yielded instead.
+    """
+    question_pool = dict(question_pool)
+    items = list(question_pool.items())
+    while True:
+        yield random.choice(items) if items else error_question
+
+
+def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
+    # Sets bg colour to black, curses.wrapper resets this on termination
+    curses.init_color(0, 0, 0, 0)
+    # We must call this to be able to use -1 in the next command
+    curses.use_default_colors()
+    # Hide the cursor
+    curses.curs_set(0)
+    # -1 sets the text bg colour to the current bg colour of the terminal
+    curses.init_pair(1, curses.COLOR_CYAN, -1)
+    curses.init_pair(2, curses.COLOR_BLUE, -1)
+    curses.init_pair(3, curses.COLOR_GREEN, -1)
+    curses.init_pair(4, curses.COLOR_RED, -1)
+
+    question_widget = QuestionWidget("???", preceding_str, 1, 2, 0)
+    answer_widget = AnswerWidget([], 3, 4)
+    running_total_widget = RunningTotalWidget()
+    for question_no, (question, correct_answer) in enumerate(question_gen, 1):
+        # Print out the question
+        stdscr.clear()
+        question_widget.next_question(question)
+
+        # Print out running total of questions answered correctly
+        running_total_widget.draw(stdscr)
+
+        # Print out the answers
+        try:
+            answers = answer_producer.get_random_answers(question)
+        except ValueError:
+            answers = ["???"]
+        answer_widget.clear_coloured_answers()
+        answer_widget.answers = answers
+
+        curses.ungetch(curses.KEY_RESIZE)
+        # Here we wait for user input and react accordingly
+        answer_chosen = False
+        while True:
+            c = stdscr.getch()
+            if chr(c) == "q":  # User has quit
+                return
+            elif c == curses.KEY_RESIZE:  # We redraw on resize
+                stdscr.clear()
+                question_widget.draw(stdscr)
+                answer_widget.draw(stdscr)
+                running_total_widget.draw(stdscr)
+                stdscr.border(0)
+                stdscr.refresh()
+            elif answer_chosen:  # User has gone to next question
+                answer_chosen = False
+                break
+            elif chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers):
+                answer_chosen = True
+                chosen_answer = answers[int(chr(c)) - 1]
+                answer_widget.add_green_answer(
+                    answers.index(correct_answer) + 1
+                )
+                if chosen_answer == correct_answer:
+                    running_total_widget.increment(True)
+                else:
+                    answer_widget.add_red_answer(int(chr(c)))
+                    running_total_widget.increment(False)
+                # Set next key to resize so our changes are drawn
+                curses.ungetch(curses.KEY_RESIZE)
+
+
 def main():
     description = """Answer questions from a text file using the number
-                     keys."""
+                     keys. Questions and their answers should be on the
+                     same line and split by a common delimeter. The
+                     answer choices displayed by the program for a given
+                     question are sampled randomly from other questions
+                     in the input file (in addition to the correct
+                     answer)."""
     # Here we define our command line arguments
     parser = argparse.ArgumentParser(description=description)
     # Dictates if user wants a set number, or infinite questions
@@ -84,7 +202,7 @@ def main():
     parser.add_argument(
         "-c",
         "--choices",
-        type=int,
+        type=check_positive,
         help="number of answers to choose from per question, default is 3",
         default=3,
     )
@@ -93,7 +211,8 @@ def main():
     question_group.add_argument(
         "-n",
         "--questions",
-        type=int, help="number of questions to answer",
+        type=check_positive,
+        help="number of questions to answer",
         default=10
     )
     # Optional argument: endless
@@ -101,7 +220,7 @@ def main():
     question_group.add_argument(
         "-e",
         "--endless",
-        help="keep asking questions until program is terminated",
+        help="keep asking questions until user terminates program",
         action="store_true",
     )
     args = parser.parse_args()
@@ -110,7 +229,11 @@ def main():
     delim = args.delimiter
     # Split file lines by delimiter
     question_pool = dict(map(lambda string: string.split(delim), file_lines))
-    # Create the correct question generator object
+    # Assert there are actually questions in the input file
+    if not question_pool:
+        print("Input file is empty!")
+        return
+    # Create the correct question generator object according to cmdline args
     if args.endless:
         question_gen = inf_question_generator(question_pool)
     else:
@@ -129,97 +252,6 @@ def main():
             stdscr, question_gen, false_answer_producer, args.precede
         )
     )
-
-
-def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
-    # Sets bg colour to black, curses.wrapper resets this on termination
-    curses.init_color(0, 0, 0, 0)
-    # We must call this to be able to use -1 in the next command
-    curses.use_default_colors()
-    # Hide the cursor
-    curses.curs_set(0)
-    # -1 sets the text bg colour to the current bg colour of the terminal
-    curses.init_pair(1, curses.COLOR_CYAN, -1)
-    curses.init_pair(2, curses.COLOR_BLUE, -1)
-    curses.init_pair(3, curses.COLOR_GREEN, -1)
-    curses.init_pair(4, curses.COLOR_RED, -1)
-
-    question_widget = QuestionWidget("???", preceding_str, 1, 2, 0)
-    answer_widget = AnswerWidget([], 3, 4)
-    running_total_widget = RunningTotalWidget()
-    for question_no, (question, correct_answer) in enumerate(question_gen, 1):
-        # Print out the question
-        stdscr.clear()
-        question_widget.next_question(question)
-
-        # Print out running total of questions answered correctly
-        running_total_widget.draw(stdscr)
-
-        # Print out the answers
-        answers = answer_producer.get_random_answers(question)
-        answer_widget.clear_coloured_answers()
-        answer_widget.answers = answers
-
-        curses.ungetch(curses.KEY_RESIZE)
-        # Here we wait for user input and react accordingly
-        answer_chosen = False
-        while True:
-            c = stdscr.getch()
-            if chr(c) == "q":  # User has quit
-                return
-            elif c == curses.KEY_RESIZE:  # We redraw on resize
-                stdscr.clear()
-                question_widget.draw(stdscr)
-                answer_widget.draw(stdscr)
-                running_total_widget.draw(stdscr)
-                stdscr.border(0)
-                stdscr.refresh()
-            elif answer_chosen:  # User has gone to next question
-                answer_chosen = False
-                break
-            elif chr(c).isdigit() and 1 <= int(chr(c)) <= len(answers):
-                answer_chosen = True
-                chosen_answer = answers[int(chr(c)) - 1]
-                answer_widget.add_green_answer(
-                    answers.index(correct_answer) + 1
-                )
-                if chosen_answer == correct_answer:
-                    running_total_widget.increment(True)
-                else:
-                    answer_widget.add_red_answer(int(chr(c)))
-                    running_total_widget.increment(False)
-                # Set next key to resize so our changes are drawn
-                curses.ungetch(curses.KEY_RESIZE)
-
-
-def question_generator(question_pool, no_questions, with_replacement=False):
-    """
-    Generator which yields <no_questions> questions from the specified
-    question_pool (which should be a valid argument to dict(), ie consist of
-    (question, answer) tuples). If with_replacement is True and
-    no_questions > len(questions_pool), the generator will yield
-    len(question_pool) items.
-    """
-    question_pool = dict(question_pool)
-    if with_replacement:
-        for i in range(no_questions):
-            yield random.choice(question_pool.items())
-    else:
-        no_questions = min(len(question_pool), no_questions)
-        chosen_questions = random.sample(question_pool.items(), no_questions)
-        for question in chosen_questions:
-            yield question
-
-
-def inf_question_generator(question_pool, error_question=("?", "?")):
-    """
-    Generator which will yield random questions from a pool continuously.
-    If the pool is empty error_question is yielded instead.
-    """
-    question_pool = dict(question_pool)
-    items = list(question_pool.items())
-    while True:
-        yield random.choice(items) if items else error_question
 
 
 if __name__ == "__main__":
