@@ -4,13 +4,22 @@ import textwrap
 
 class QuestionWidget:
     def __init__(
-        self, question, question_no, preceding_str, intro_colour,
-            question_colour
+        self,
+        question,
+        preceding_str,
+        intro_colour,
+        question_colour,
+        starting_question_number=1,
     ):
         self.question = question
-        self.question_no = question_no
+        self.preceding_str = preceding_str
         self.intro_colour = intro_colour
         self.question_colour = question_colour
+        self.question_number = starting_question_number
+
+    def next_question(self, question):
+        self.question = question
+        self.question_number += 1
 
     def draw(self, stdscr):
         """
@@ -21,7 +30,7 @@ class QuestionWidget:
         stdscr.addstr(
             1,
             2,
-            "Question " + str(self.question_no),
+            "Question " + str(self.question_number),
             curses.color_pair(self.intro_colour),
         )
         stdscr.addstr(": " + self.preceding_str)
@@ -82,14 +91,18 @@ class RunningTotalWidget:
         self.no_correct = 0
         self.no_questions = 0
 
+    def increment(self, is_answer_correct):
+        self.no_questions += 1
+        if is_answer_correct:
+            self.no_correct += 1
+
     def draw(self, stdscr):
         # Print out running total of questions answered at the top right
         # of the screen
         max_y, max_x = stdscr.getmaxyx()
-        running_total_str = """
-        {questions_answered_correctly}/{total_questions_asked}
-        """.format(
-            questions_answered_correctly=self.no_correct,
-            total_questions_asked=self.no_questions,
-        )
+        running_total_str = \
+            "{questions_answered_correctly}/{total_questions_asked}".format(
+                questions_answered_correctly=self.no_correct,
+                total_questions_asked=self.no_questions,
+            )
         stdscr.addstr(1, max_x - len(running_total_str) - 2, running_total_str)
