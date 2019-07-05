@@ -5,6 +5,7 @@ import curses
 import os
 import random
 import sys
+from collections import OrderedDict
 
 from curses_questions.widgets import (
     QuestionWidget, AnswerWidget, RunningTotalWidget
@@ -215,6 +216,14 @@ def main():
         help="number of questions to answer (no duplicates). If this is greater than the number of questions in the file, all the questions are asked in a random order.",
         default=10
     )
+    # optional argument: all
+    # description: asks all questions in the order they appear in the input
+    question_group.add_argument(
+        "-a",
+        "--all",
+        help="Ask all questions in the input file, preserving their order",
+        action="store_true",        
+    )
     # Optional argument: endless
     # description: tells program to keep asking questions until terminated
     question_group.add_argument(
@@ -228,7 +237,7 @@ def main():
     file_lines = args.infile.readlines()
     delim = args.delimiter
     # Split file lines by delimiter, we do a bit a validation here too
-    question_pool = dict()
+    question_pool = OrderedDict()
     for line in file_lines:
         split = line.split(delim, 1)
         if (len(split) == 2):
@@ -242,6 +251,8 @@ def main():
     # Create the correct question generator object according to cmdline args
     if args.endless:
         question_gen = inf_question_generator(question_pool)
+    elif args.all:
+        question_gen = iter(question_pool.items())
     else:
         question_gen = question_generator(question_pool, args.questions)
     # Create a false answer generator object
