@@ -186,8 +186,8 @@ def main():
     parser.add_argument(
         "-d",
         "--delimiter",
-        help="delimiter in input lines which divide the question and answer",
-        default=",",
+        help="delimiter in input lines which divide the question and answer, default is tab",
+        default="\t",
     )
     # optional argument: precede
     # description: text to precede all questions
@@ -212,7 +212,7 @@ def main():
         "-n",
         "--questions",
         type=check_positive,
-        help="number of questions to answer",
+        help="number of questions to answer (no duplicates). If this is greater than the number of questions in the file, all the questions are asked in a random order.",
         default=10
     )
     # Optional argument: endless
@@ -227,11 +227,17 @@ def main():
 
     file_lines = args.infile.readlines()
     delim = args.delimiter
-    # Split file lines by delimiter
-    question_pool = dict(map(lambda string: string.split(delim), file_lines))
+    # Split file lines by delimiter, we do a bit a validation here too
+    question_pool = dict()
+    for line in file_lines:
+        split = line.split(delim, 1)
+        if (len(split) == 2):
+            question_pool[split[0]] = split[1]
+        else:
+            print("Skipping incorrectly formatted line: " + line)
     # Assert there are actually questions in the input file
     if not question_pool:
-        print("Input file is empty!")
+        print("Input file is empty or has no lines in the correct format!")
         return
     # Create the correct question generator object according to cmdline args
     if args.endless:
