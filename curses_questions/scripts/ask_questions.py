@@ -107,9 +107,10 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
     curses.init_pair(2, curses.COLOR_BLUE, -1)
     curses.init_pair(3, curses.COLOR_GREEN, -1)
     curses.init_pair(4, curses.COLOR_RED, -1)
+    curses.init_pair(5, curses.COLOR_YELLOW, -1)
 
-    question_widget = QuestionWidget("???", preceding_str, 1, 2, 0)
-    answer_widget = AnswerWidget([], 3, 4)
+    question_widget = QuestionWidget("???", preceding_str, curses.color_pair(1), curses.color_pair(2), 0)
+    answer_widget = AnswerWidget([], 3, 4, curses.A_DIM, curses.A_BOLD)
     running_total_widget = RunningTotalWidget()
     for question_no, (question, correct_answer) in enumerate(question_gen, 1):
         # Print out the question
@@ -137,7 +138,7 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
             elif c == curses.KEY_RESIZE:  # We redraw on resize
                 stdscr.clear()
                 question_widget.draw(stdscr)
-                answer_widget.draw(stdscr)
+                answer_widget.draw(stdscr, question_no % 2)
                 running_total_widget.draw(stdscr)
                 stdscr.border(0)
                 stdscr.refresh()

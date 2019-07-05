@@ -7,14 +7,14 @@ class QuestionWidget:
         self,
         question,
         preceding_str,
-        intro_colour,
-        question_colour,
+        intro_flag,
+        question_flag,
         starting_question_number=1,
     ):
         self.question = question
         self.preceding_str = preceding_str
-        self.intro_colour = intro_colour
-        self.question_colour = question_colour
+        self.intro_flag = intro_flag
+        self.question_flag = question_flag
         self.question_number = starting_question_number
 
     def next_question(self, question):
@@ -24,24 +24,28 @@ class QuestionWidget:
     def draw(self, stdscr):
         """
         Draw the specified question at the top of the screen, with
-        'Question <question_no>' having colour intro_colour, and
-        the question itself having colour question_colour
+        'Question <question_no>' having flag intro_flag, and
+        the question itself having flag question_flag
         """
         stdscr.addstr(
             1,
             2,
             "Question " + str(self.question_number),
-            curses.color_pair(self.intro_colour),
+            self.intro_flag,
         )
         stdscr.addstr(": " + self.preceding_str)
-        stdscr.addstr(self.question, curses.color_pair(self.question_colour))
+        stdscr.addstr(self.question, self.question_flag)
 
 
 class AnswerWidget:
-    def __init__(self, answers, correct_colour, false_colour, indent=6):
+    def __init__(
+            self, answers, correct_colour, false_colour, even_flag, odd_flag,
+            indent=6):
         self.answers = answers
         self.correct_colour = correct_colour
         self.false_colour = false_colour
+        self.even_flag = even_flag
+        self.odd_flag = odd_flag
         self.indent = indent
         self.green_answers = []
         self.red_answers = []
@@ -56,7 +60,7 @@ class AnswerWidget:
         self.green_answers.clear()
         self.red_answers.clear()
 
-    def draw(self, stdscr):
+    def draw(self, stdscr, switch_flags=False):
         """
         Draw the contents of self.answers on the screen. answers whose index
         is in self.green_answers or self.red_answers will be drawn with those
@@ -73,12 +77,13 @@ class AnswerWidget:
                 initial_indent=" " * self.indent,
                 subsequent_indent=" " * (self.indent + 3),
             )
-            flag = curses.A_BOLD if (number % 2) else curses.A_DIM
+            oddp = not (number % 2) if (switch_flags) else (number % 2)
+            flag = self.odd_flag if oddp else self.even_flag
             # Green or red text overrides bold and dim effects
             if number in self.green_answers:
-                flag = curses.color_pair(3)
+                flag = curses.color_pair(self.correct_colour)
             elif number in self.red_answers:
-                flag = curses.color_pair(4)
+                flag = curses.color_pair(self.false_colour)
             for line in text_wrap:
                 stdscr.addstr(current_line, 0, line, flag)
                 current_line += 1
