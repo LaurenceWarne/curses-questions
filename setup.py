@@ -11,8 +11,11 @@ setup(
     author="Laurence Warne",
     license="MIT",
     entry_points={
-        'console_scripts':
-        ['curses-questions=curses_questions.scripts.ask_questions:main'],
+        "console_scripts":
+        [
+            "curses-questions=curses_questions.scripts.ask_questions:main",
+            "curses-anki=curses_questions.scripts.extract_ank_apkg:main"
+        ],
     },
     install_requires=[],
     zip_safe=False

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+Uses curses to display questions when run as a script.
+"""
+
 import argparse
 import curses
 import os
@@ -10,10 +14,6 @@ from collections import OrderedDict
 from curses_questions.widgets import (
     QuestionWidget, AnswerWidget, RunningTotalWidget
 )
-
-"""
-Uses curses to display questions when run as a script.
-"""
 
 
 class FalseAnswerProducer:
