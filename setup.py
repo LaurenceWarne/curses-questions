@@ -14,7 +14,7 @@ setup(
         "console_scripts":
         [
             "curses-questions=curses_questions.scripts.ask_questions:main",
-            "curses-anki=curses_questions.scripts.extract_ank_apkg:main"
+            "curses-anki=curses_questions.scripts.extract_anki_apkg:main"
         ],
     },
     install_requires=[],
