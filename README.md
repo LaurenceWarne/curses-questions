@@ -42,11 +42,25 @@ optional arguments:
 
 ## Anki .apkg Compatibility
 
-You can use the ```curses-anki``` script to attempt to convert anki .apkg files to a format usable by ```curses-questions```:
+You can use the ```curses-anki``` script to convert anki .apkg files to a format usable by ```curses-questions```:
 ```
-$ curses-anki my-file.apkg | curses-questions
+$ curses-anki my-file.apkg --fields 1 3 | curses-questions
 ```
-Note this will create a ```collection.anki2``` file in your working directory.
+Here the ```--fields``` flag corresponds to text seperated by the character ```\x1f``` in the ```flds``` column of the ```notes``` table in the database extracted from the .apkg file. ie the values of 1 3 above with the flds column ```hi\x1fthere\x1fsir``` will return ```hi``` and ```sir```.
+
+The fields typically correpond to rows specified in a deck intro. Taking as a working example [this](https://ankiweb.net/shared/info/685421036) deck on works of art, the command:
+```
+$ curses-anki Great_Works_of_Art.apkg -f 2 3
+```
+Will print ```AUTHOR        PAINTING```(tab seperated) for each note. and the command:
+```
+$ curses-anki Great_Works_of_Art.apkg -f 3 6
+```
+Will print ```PAINTING        PERIOD``` for each note.
+
+Without the ```--fields``` option the script will guess appropriate fields by looking at their content.
+
+Note using this script will create a ```collection.anki2``` file in your working directory.
 
 ## Installation
 
