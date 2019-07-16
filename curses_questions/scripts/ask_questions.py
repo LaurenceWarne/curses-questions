@@ -7,14 +7,18 @@ Uses curses to display questions when run as a script.
 import argparse
 import curses
 import os
-import random
 import sys
 from collections import OrderedDict
 
 from curses_questions.widgets import (
     QuestionWidget, AnswerWidget, RunningTotalWidget
 )
-from curses_questions.answer_providers import RandomizedAnswerProvider
+from curses_questions.answer_providers import (
+    RandomizedAnswerProvider, PresetAnswerProvider
+)
+from curses_questions.question_providers import (
+    randomized_question_generator, inf_question_generator
+)
 
 
 def check_positive(value):
@@ -29,36 +33,6 @@ def check_positive(value):
             "Expected positive integer but got: '{value}'".format(value=value)
         )
     return int_value
-
-
-def question_generator(question_pool, no_questions, with_replacement=False):
-    """
-    Generator which yields <no_questions> questions from the specified
-    question_pool (which should be a valid argument to dict(), ie consist of
-    (question, answer) tuples). If with_replacement is True and
-    no_questions > len(questions_pool), the generator will yield
-    len(question_pool) items.
-    """
-    question_pool = dict(question_pool)
-    if with_replacement:
-        for i in range(no_questions):
-            yield random.choice(question_pool.items())
-    else:
-        no_questions = min(len(question_pool), no_questions)
-        chosen_questions = random.sample(question_pool.items(), no_questions)
-        for question in chosen_questions:
-            yield question
-
-
-def inf_question_generator(question_pool, error_question=("???", "???")):
-    """
-    Generator which will yield random questions from a pool continuously.
-    If the pool is empty error_question is yielded instead.
-    """
-    question_pool = dict(question_pool)
-    items = list(question_pool.items())
-    while True:
-        yield random.choice(items) if items else error_question
 
 
 def questions_loop(stdscr, question_gen, answer_provider, preceding_str):
@@ -138,6 +112,8 @@ def main():
     parser = argparse.ArgumentParser(description=description)
     # Dictates if user wants a set number, or infinite questions
     question_group = parser.add_mutually_exclusive_group()
+    # Dictates how answers for questions are obtained
+    answer_format_group = parser.add_mutually_exclusive_group()
 
     # positional argument: infile
     # description: name of file to read questions from
@@ -168,12 +144,20 @@ def main():
     )
     # optional argument: choices
     # description: number of answer choices for a question
-    parser.add_argument(
+    answer_format_group.add_argument(
         "-c",
         "--choices",
         type=check_positive,
         help="number of answers to choose from per question, default is 3",
         default=3,
+    )
+    # optional argument: preset-answers
+    # description: use preset answers dictated in input file
+    answer_format_group.add_argument(
+        "-pa",
+        "--preset-answers",
+        help="using this option will replace the programs default behaviour of obtaining possible answers for a question by sampling answers to other questions. Instead, the program will interpret input lines as a question followed by one or more answers; the question/answers being seperated by the --delimiter option and the question always being taken as the string before the first occurrence of the delimiter. The correct answer will be taken as the string after.",
+        action="store_true"
     )
     # optional argument: questions
     # description: number of questions to ask
@@ -204,27 +188,39 @@ def main():
 
     file_lines = args.infile.readlines()
     delim = args.delimiter
-    # Split file lines by delimiter, we do a bit a validation here too
-    question_pool = OrderedDict()
-    for line in file_lines:
-        split = line.split(delim, 1)
-        if (len(split) == 2):
-            question_pool[split[0]] = split[1]
-        else:
-            print("Skipping incorrectly formatted line: " + line)
+
+    ##########################################
+    # Create the correct answer provider obj #
+    ##########################################
+    if args.preset_answers:
+        answer_provider = PresetAnswerProvider.parse_from_iter(
+            file_lines,
+            delim
+        )
+    else:
+        answer_provider = RandomizedAnswerProvider.parse_from_iter(
+            file_lines,
+            args.choices,
+            delim
+        )
+
+    ############################################
+    # Create the correct question provider obj #
+    ############################################
     # Assert there are actually questions in the input file
-    if not question_pool:
+    question_to_answer_mapping = answer_provider.get_all_questions()
+    if not question_to_answer_mapping:
         print("Input file is empty or has no lines in the correct format!")
         return
     # Create the correct question generator object according to cmdline args
     if args.endless:
-        question_gen = inf_question_generator(question_pool)
+        question_gen = inf_question_generator(question_to_answer_mapping)
     elif args.all:
-        question_gen = iter(question_pool.items())
+        question_gen = question_to_answer_mapping.items()
     else:
-        question_gen = question_generator(question_pool, args.questions)
-    # Create an answer provider object
-    answer_provider = RandomizedAnswerProvider(question_pool, args.choices)
+        question_gen = randomized_question_generator(
+            question_to_answer_mapping, args.questions
+        )
 
     # To read from standard input and still be able to handle user key
     # presses we need to do the following, see:

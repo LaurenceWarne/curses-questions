@@ -5,6 +5,7 @@ Classes for generating answers based on a specified question.
 """
 
 import random
+from collections import OrderedDict
 
 
 class RandomizedAnswerProvider:
@@ -19,6 +20,21 @@ class RandomizedAnswerProvider:
         # Just to be safe
         if not self.question_pool:
             self.question_pool = {"Your question Here": "Your answer here"}
+
+    @classmethod
+    def parse_from_iter(cls, iterable, no_choices=3, delimiter="\t"):
+        question_pool = OrderedDict()
+        for line in iterable:
+            split = line.split(delimiter, 1)
+            if (len(split) == 2):
+                question_pool[split[0]] = split[1]
+        return cls(question_pool, no_choices)
+
+    def get_all_questions(self):
+        """
+        Return a mapping of questions to their correct answers.
+        """
+        return dict(self.question_pool)
 
     def get_answers(self, chosen_question):
         """
@@ -50,9 +66,20 @@ class PresetAnswerProvider:
     """
 
     def __init__(self, question_to_answers_map):
-        self.questions_to_answers_map = question_to_answers_map
-        if not self.question_pool:
+        # Mapping of questions to lists of answers, correct answer is
+        # implicitly first string in list
+        self.question_to_answers_map = question_to_answers_map
+        if not self.question_to_answers_map:
             self.question_pool = {"Your question Here": "Your answer here"}
+
+    def get_all_questions(self):
+        """
+        Return a mapping of questions to their correct answers.
+        """
+        return {
+            question: self.question_to_answers_map[question][0]
+            for question in self.question_to_answers_map.keys()
+        }
 
     @classmethod
     def parse_from_iter(cls, iterable, delimiter="\t"):
@@ -64,11 +91,12 @@ class PresetAnswerProvider:
         return cls(question_to_answers_map)
 
     def get_answers(self, chosen_question):
-        if chosen_question not in self.question_pool:
+        if chosen_question not in self.question_to_answers_map:
             raise ValueError(
                 "chosen_question: '{question}' is not a registered question."
                 .format(question=chosen_question)
             )
         else:
-            # Return a copy, not a view
-            return self.questions_to_answers_map[chosen_question][:]
+            answers = self.question_to_answers_map[chosen_question][:]
+            # non mutator shuffling
+            return random.sample(answers, len(answers))
