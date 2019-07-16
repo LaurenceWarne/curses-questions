@@ -14,41 +14,7 @@ from collections import OrderedDict
 from curses_questions.widgets import (
     QuestionWidget, AnswerWidget, RunningTotalWidget
 )
-
-
-class FalseAnswerProducer:
-    """
-    Obtains false answers via random selection from a question pool.
-    """
-
-    def __init__(self, question_pool, no_choices=3):
-        self.question_pool = question_pool
-        self.no_choices = no_choices
-        # Just to be safe
-        if not self.question_pool:
-            self.question_pool = {"Your question Here": "Your answer here"}
-
-    def get_random_answers(self, chosen_question):
-        """
-        Get iterable of answers which consists of the answer of the chosen
-        question and (no_choices - 1) randomly chosen incorrect answers.
-        """
-        # Ensure random.sample works, note deliberate method local variable
-        no_choices = min(self.no_choices, len(self.question_pool))
-        # Check chosen_question is actually in the answer pool:
-        if chosen_question not in self.question_pool:
-            raise ValueError(
-                "chosen_question: '{question}' is not in the question_pool"
-                .format(question=chosen_question)
-            )
-        exclusion_set = set([self.question_pool[chosen_question]])
-        choice_set = set(self.question_pool.values()) - exclusion_set
-        # random choice without replacement
-        choices = random.sample(choice_set, no_choices - 1)
-        correct_answer = self.question_pool[chosen_question]
-        # Insert correct answer into random place in list
-        choices.insert(random.randint(0, no_choices - 1), correct_answer)
-        return choices
+from curses_questions.answer_providers import RandomizedAnswerProvider
 
 
 def check_positive(value):
@@ -95,7 +61,7 @@ def inf_question_generator(question_pool, error_question=("???", "???")):
         yield random.choice(items) if items else error_question
 
 
-def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
+def questions_loop(stdscr, question_gen, answer_provider, preceding_str):
     # Sets bg colour to black, curses.wrapper resets this on termination
     curses.init_color(0, 0, 0, 0)
     # We must call this to be able to use -1 in the next command
@@ -122,7 +88,7 @@ def questions_loop(stdscr, question_gen, answer_producer, preceding_str):
 
         # Print out the answers
         try:
-            answers = answer_producer.get_random_answers(question)
+            answers = answer_provider.get_answers(question)
         except ValueError:
             answers = ["???"]
         answer_widget.clear_coloured_answers()
@@ -188,7 +154,8 @@ def main():
     parser.add_argument(
         "-d",
         "--delimiter",
-        help="delimiter in input lines which divide the question and answer, default is tab",
+        help="""delimiter in input lines which divide the question and answer,
+        default is tab""",
         default="\t",
     )
     # optional argument: precede
@@ -223,7 +190,7 @@ def main():
         "-a",
         "--all",
         help="Ask all questions in the input file, preserving their order",
-        action="store_true",        
+        action="store_true",
     )
     # Optional argument: endless
     # description: tells program to keep asking questions until terminated
@@ -256,8 +223,8 @@ def main():
         question_gen = iter(question_pool.items())
     else:
         question_gen = question_generator(question_pool, args.questions)
-    # Create a false answer generator object
-    false_answer_producer = FalseAnswerProducer(question_pool, args.choices)
+    # Create an answer provider object
+    answer_provider = RandomizedAnswerProvider(question_pool, args.choices)
 
     # To read from standard input and still be able to handle user key
     # presses we need to do the following, see:
@@ -267,7 +234,7 @@ def main():
     # wrapper() calls cbreak() and noecho() so we don't have to
     curses.wrapper(
         lambda stdscr: questions_loop(
-            stdscr, question_gen, false_answer_producer, args.precede
+            stdscr, question_gen, answer_provider, args.precede
         )
     )
 
