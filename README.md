@@ -22,6 +22,13 @@ Table of Contents
 Requires python 3.
 
 ```
+# Installs locally
+$ pip3 install curses-questions --user
+```
+
+Or install from source:
+
+```
 $ git clone https://github.com/LaurenceWarne/curses-questions.git && cd curses-questions
 # Installs locally
 $ python3 setup.py install --user

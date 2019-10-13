@@ -7,7 +7,7 @@ setup(
     include_package_data=True,
     python_requires='>=3',
     url="https://github.com/LaurenceWarne/curses-questions",
-    version="1.1",
+    version="1.4",
     author="Laurence Warne",
     license="MIT",
     entry_points={
