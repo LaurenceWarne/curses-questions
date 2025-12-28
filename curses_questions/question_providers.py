@@ -16,10 +16,10 @@ def randomized_question_generator(
     question_pool = dict(question_pool)
     if with_replacement:
         for i in range(no_questions):
-            yield random.choice(question_pool.items())
+            yield random.choice(sorted(question_pool.items()))
     else:
         no_questions = min(len(question_pool), no_questions)
-        chosen_questions = random.sample(question_pool.items(), no_questions)
+        chosen_questions = random.sample(sorted(question_pool.items()), no_questions)
         for question in chosen_questions:
             yield question
 

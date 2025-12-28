@@ -52,7 +52,7 @@ class RandomizedAnswerProvider:
         exclusion_set = set([self.question_pool[chosen_question]])
         choice_set = set(self.question_pool.values()) - exclusion_set
         # random choice without replacement
-        choices = random.sample(choice_set, no_choices - 1)
+        choices = random.sample(sorted(choice_set), no_choices - 1)
         correct_answer = self.question_pool[chosen_question]
         # Insert correct answer into random place in list
         choices.insert(random.randint(0, no_choices - 1), correct_answer)
