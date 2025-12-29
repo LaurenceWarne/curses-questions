@@ -2,7 +2,6 @@
 
 A simple script which uses curses to create a nice TUI for asking questions.
 
-
 Table of Contents
 =================
 
@@ -15,23 +14,21 @@ Table of Contents
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/VM1Gx7rwbmdSP1vFbd5HecPtx.svg)](https://asciinema.org/a/VM1Gx7rwbmdSP1vFbd5HecPtx)
+![Image](https://github.com/user-attachments/assets/68b85f8e-debf-4532-9495-b53bc8ba01a5)
 
 ## Installation
 
 Requires python 3.
 
 ```
-# Installs locally
-$ pip3 install curses-questions --user
+pipx install curses-questions
 ```
 
 Or install from source:
 
 ```
-$ git clone https://github.com/LaurenceWarne/curses-questions.git && cd curses-questions
-# Installs locally
-$ python3 setup.py install --user
+git clone https://github.com/LaurenceWarne/curses-questions.git && cd curses-questions
+pipx install . --force
 ```
 
 ## Usage
@@ -76,23 +73,26 @@ optional arguments:
   -a, --all             Ask all questions in the input file, preserving their
                         order
   -e, --endless         keep asking questions until user terminates program
+  -r, --regex REGEX     Use only lines matching the given regex, taking
+                        question/answer as the first/second capture group
+                        respectively
 ```
 
 ## Anki .apkg Compatibility
 
 You can use the ```curses-anki``` script to convert anki .apkg files to a format usable by ```curses-questions```:
 ```
-$ curses-anki my-file.apkg --fields 1 3 | curses-questions
+curses-anki my-file.apkg --fields 1 3 | curses-questions
 ```
 Here the ```--fields``` flag corresponds to text separated by the character ```\x1f``` in the ```flds``` column of the ```notes``` table in the database extracted from the .apkg file (you can read more about the .apkg file format [here](https://decks.fandom.com/wiki/Anki_APKG_format_documentation)). ie the values of 1 3 above with the flds column ```hi\x1fthere\x1fsir``` will return ```hi``` and ```sir```.
 
 The fields typically correspond to rows specified in a deck intro. Taking as a working example [this](https://ankiweb.net/shared/info/685421036) deck on works of art, the command:
 ```
-$ curses-anki Great_Works_of_Art.apkg -f 2 3
+curses-anki Great_Works_of_Art.apkg -f 2 3
 ```
 Will print ```AUTHOR        PAINTING```(tab separated) for each note. and the command:
 ```
-$ curses-anki Great_Works_of_Art.apkg -f 3 6
+curses-anki Great_Works_of_Art.apkg -f 3 6
 ```
 Will print ```PAINTING        PERIOD``` for each note.
 
@@ -105,12 +105,10 @@ Note using this script will create a ```collection.anki2``` file in your working
 
 Test yourself on elements and their symbols:
 ```
-$ wget https://raw.githubusercontent.com/andrejewski/periodic-table/master/data.csv -O elements.csv && cut -d "," -f 2,3 elements.csv | curses-questions -d "," -e -c 5
+wget https://raw.githubusercontent.com/andrejewski/periodic-table/master/data.csv -O elements.csv && cut -d "," -f 2,3 elements.csv | curses-questions -d "," -e -c 5
 ```
 
 American presidents and years they were in office:
 ```
-$ wget https://raw.githubusercontent.com/m0rt1m3r/US-Presidents/master/USPresidents.csv && cut -d "," -f 2,4 USPresidents.csv | curses-questions -d "," -c 5 -p "Which of these dates marks the starting term of "
-
+wget https://raw.githubusercontent.com/m0rt1m3r/US-Presidents/master/USPresidents.csv && cut -d "," -f 2,4 USPresidents.csv | curses-questions -d "," -c 5 -p "Which of these dates marks the starting term of "
 ```
-
