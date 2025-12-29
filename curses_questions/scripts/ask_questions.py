@@ -184,10 +184,18 @@ def main():
         help="keep asking questions until user terminates program",
         action="store_true",
     )
+    # Optional argument: regex
+    # description: use regex for question/answer extraction
+    question_group.add_argument(
+        "-r",
+        "--regex",
+        help="Use only lines matching the given regex, taking question/answer as the first/second capture group respectively",
+    )
     args = parser.parse_args()
 
     file_lines = args.infile.readlines()
     delim = args.delimiter
+    regex = args.regex
 
     ##########################################
     # Create the correct answer provider obj #
@@ -196,6 +204,12 @@ def main():
         answer_provider = PresetAnswerProvider.parse_from_iter(
             file_lines,
             delim
+        )
+    elif regex:
+        answer_provider = RandomizedAnswerProvider.parse_from_iter_regex(
+            file_lines,
+            regex,
+            args.choices,
         )
     else:
         answer_provider = RandomizedAnswerProvider.parse_from_iter(

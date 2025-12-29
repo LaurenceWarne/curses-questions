@@ -4,7 +4,7 @@
 Classes for generating answers based on a specified question.
 """
 
-import random
+import random, re
 from collections import OrderedDict
 
 
@@ -28,6 +28,21 @@ class RandomizedAnswerProvider:
             split = line.split(delimiter, 1)
             if (len(split) == 2):
                 question_pool[split[0]] = split[1]
+        return cls(question_pool, no_choices)
+
+    @classmethod
+    def parse_from_iter_regex(cls, iterable, regex, no_choices=3):
+        question_pool = OrderedDict()
+        for line in iterable:
+            match = re.match(regex, line)
+            if not match:
+                continue
+            try:
+                q, a = match.group(1), match.group(2)
+            except IndexError:
+                continue
+            else:
+                question_pool[q] = a
         return cls(question_pool, no_choices)
 
     def get_all_questions(self):
