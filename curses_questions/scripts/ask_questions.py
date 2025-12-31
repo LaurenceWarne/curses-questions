@@ -186,7 +186,7 @@ def main():
     )
     # Optional argument: regex
     # description: use regex for question/answer extraction
-    question_group.add_argument(
+    parser.add_argument(
         "-r",
         "--regex",
         help="Use only lines matching the given regex, taking question/answer as the first/second capture group respectively",
